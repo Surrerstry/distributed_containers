@@ -4,7 +4,7 @@ __website__ = 'surrerstry.pl'
 
 class distributed_container(object):
 	"""
-	Conceptual library written for pypy-stm that target is to get out more from
+	Conceptual library written for pypy-stm that target is to get more from
 	multithreading possibilities of pypy-stm.
 
 	Using of this library on standard implementation of Python is pointless probably.
