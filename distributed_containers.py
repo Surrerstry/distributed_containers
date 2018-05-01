@@ -1,5 +1,5 @@
 __author__ = 'Surrerstry'
-__version__ = '0.2'
+__version__ = '0.3'
 __website__ = 'surrerstry.pl'
 
 
@@ -20,6 +20,12 @@ class distributed_container(object):
 	>>> one_thread_result = input_container.count(10)
 	>>> multithreading_result == one_thread_result
 	True
+	>>> input_container = [randint(5,15) for x in range(1000)]
+	>>> container = distributed_container(input_container, 16, 4)
+	>>> multithreading_result = container.count(10)
+	>>> one_thread_result = input_container.count(10)
+	>>> multithreading_result == one_thread_result
+	True
 
 	>>> # 'TESTS_OF:self.indexes'
 	>>> input_container = [0,1,2,3,4,5,6,7,8,9,10]*99
@@ -31,9 +37,21 @@ class distributed_container(object):
 659, 670, 681, 692, 703, 714, 725, 736, 747, 758, 769, 780, 791, 802, 813, 824, 835, 846, 857, \
 868, 879, 890, 901, 912, 923, 934, 945, 956, 967, 978, 989, 1000, 1011, 1022, 1033, 1044, 1055, \
 1066, 1077, 1088]
+	>>> input_container = [0,1,2,3,4,5,6,7,8,9,10]*99
+	>>> container = distributed_container(input_container, 64, 4)
+	>>> container.indexes(10)
+	[10, 21, 32, 43, 54, 65, 76, 87, 98, 109, 120, 131, 142, 153, 164, 175, 186, 197, 208, 219, 230, \
+241, 252, 263, 274, 285, 296, 307, 318, 329, 340, 351, 362, 373, 384, 395, 406, 417, 428, 439, \
+450, 461, 472, 483, 494, 505, 516, 527, 538, 549, 560, 571, 582, 593, 604, 615, 626, 637, 648, \
+659, 670, 681, 692, 703, 714, 725, 736, 747, 758, 769, 780, 791, 802, 813, 824, 835, 846, 857, \
+868, 879, 890, 901, 912, 923, 934, 945, 956, 967, 978, 989, 1000, 1011, 1022, 1033, 1044, 1055, \
+1066, 1077, 1088]
 
 	>>> # 'TESTS_OF:self.remove_all'
 	>>> dc = distributed_container([1, 2, 3, 4, 1, 2, 1], 2)
+	>>> dc.remove_all([1,2])
+	[3, 4]
+	>>> dc = distributed_container([1, 2, 3, 4, 1, 2, 1], 2, 4)
 	>>> dc.remove_all([1,2])
 	[3, 4]
 
@@ -58,11 +76,51 @@ class distributed_container(object):
 	>>> dc = distributed_container(input_container, 2)
 	>>> dc.sort()
 	[1, 2, 3]
+
+	>>> input_container = [8, 7, 6, 5, 4, 3, 2, 1]
+	>>> dc = distributed_container(input_container, 4, 4)
+	>>> dc.sort()
+	[1, 2, 3, 4, 5, 6, 7, 8]
+	>>> input_container = [88, 8, 7, 6, 5, 4, 3, 2, 0, 1, 111]
+	>>> dc = distributed_container(input_container, 4, 4)
+	>>> dc.sort()
+	[0, 1, 2, 3, 4, 5, 6, 7, 8, 88, 111]
+	>>> input_container = [88, 8, 7, 6, 5, 4, 3, 2, 0, 1, 111]
+	>>> dc = distributed_container(input_container, 3, 4)
+	>>> dc.sort()
+	[0, 1, 2, 3, 4, 5, 6, 7, 8, 88, 111]
+	>>> input_container = [3, 2, 1]
+	>>> dc = distributed_container(input_container, 3, 3)
+	>>> dc.sort()
+	[1, 2, 3]
+	>>> input_container = [3, 2, 1]
+	>>> dc = distributed_container(input_container, 2, 2)
+	>>> dc.sort()
+	[1, 2, 3]
+
+	>>> # 'TESTS_OF:self.min'
+	>>> input_container = [1, 2, 3, 4, 5, 6, 7, 8]
+	>>> dc = distributed_container(input_container, 4)
+	>>> dc.min()
+	1
+	>>> dc = distributed_container(input_container, 4, 4)
+	>>> dc.min()
+	1
+
+	>>> # 'TESTS_OF:self.max'
+	>>> input_container = [1, 2, 3, 4, 5, 6, 7, 8]
+	>>> dc = distributed_container(input_container, 4)
+	>>> dc.max()
+	8
+	>>> dc = distributed_container(input_container, 4, 4)
+	>>> dc.max()
+	8
 	"""
 
-	def __init__(self, container, workers=2):
+	def __init__(self, container, chunks=2, workers=None):
 		"""
 		:type container: list or tuple
+		:type workers: chunks
 		:type workers: int
 
 		:rtype: str or list
@@ -80,18 +138,28 @@ class distributed_container(object):
 
 		self.container = container
 
-		if not isinstance(workers, int):
-			raise Exception("Wrong type of third parameter(workers): ({}), expected: int".format(type(workers)))
+		
+		if not isinstance(chunks, int):
+			raise Exception("Wrong type of third parameter(workers): ({}), expected: int".format(type(chunks)))
 
-		if len(container) < workers:
-			raise Exception('Amount of workers cannot be higher than elements in container')
+		if workers is not None and not isinstance(workers, int):
+			raise Exception("Wrong type of forth parameter(workers): ({}), expected: int".format(type(workers)))
 
+		
 		self.container_length = len(container)
 
-		if workers < 2:
+		if self.container_length < workers or self.container_length < chunks:
+			raise Exception('Amount of workers/chunks cannot be higher than elements in container')
+
+		if workers is not None and workers < 2:
 			raise Exception('Amount of workers cannot be lower than 2')
 
 		self.workers = workers
+
+		if chunks < 2:
+			raise Exception('Amount of chunks cannot be lower than 2')
+
+		self.chunks = chunks
 
 		from multiprocessing.pool import ThreadPool
 		self.ThreadPool = ThreadPool
@@ -102,17 +170,25 @@ class distributed_container(object):
 		from collections import defaultdict
 		self.defaultdict = defaultdict
 
+		self.sliced_scopes = self.__count_slices__()
+
+
+		if self.workers == None:
+			self.tp = self.ThreadPool()
+		else:
+			self.tp = self.ThreadPool(self.workers)
+
 
 	def __count_slices__(self):
 		"""
 		Internal method to calculate slices
 		"""
-		split_sizes = int(self.container_length / self.workers)
-		remains = self.container_length - split_sizes * self.workers
+		split_sizes = int(self.container_length / self.chunks)
+		remains = self.container_length - split_sizes * self.chunks
 
 		scopes = []
 
-		for i in range(0, self.workers * split_sizes, split_sizes):
+		for i in range(0, self.chunks * split_sizes, split_sizes):
 			scopes.append([i, i + split_sizes])
 		scopes[-1][-1] += remains
 
@@ -124,11 +200,7 @@ class distributed_container(object):
 		Function gives the same result like classic `count` method but is implemented on many threads.
 		"""
 
-		sliced_scopes = self.__count_slices__()
-
-		tp = self.ThreadPool()
-
-		result = tp.map(lambda slc: self.container[slc].count(element_to_find), sliced_scopes)
+		result = self.tp.map(lambda slc: self.container[slc].count(element_to_find), self.sliced_scopes)
 
 		return sum(result)
 
@@ -155,11 +227,7 @@ class distributed_container(object):
 		Method return indexes of `element_to_find`, works on many threads.
 		"""
 
-		sliced_scopes = self.__count_slices__()
-
-		tp = self.ThreadPool()
-
-		results = tp.map(lambda slc: self.__indexes_worker__(self.container[slc], element_to_find, slc.start), sliced_scopes)
+		results = self.tp.map(lambda slc: self.__indexes_worker__(self.container[slc], element_to_find, slc.start), self.sliced_scopes)
 
 		all_results = []
 		for n, one_result in enumerate(results):
@@ -199,11 +267,7 @@ class distributed_container(object):
 		if not isinstance(elements_to_remove, (list, tuple)):
 			raise Exception("Method: ({}), wrong type of parameter: ({}), expected: 'list' or 'tuple'".format(self._getframe().f_code.co_name, type(elements_to_remove)))
 
-		sliced_scopes = self.__count_slices__()
-
-		tp = self.ThreadPool()
-
-		results = tp.map(lambda slc: self.__remove_all_worker__(self.container[slc], elements_to_remove), sliced_scopes)
+		results = self.tp.map(lambda slc: self.__remove_all_worker__(self.container[slc], elements_to_remove), self.sliced_scopes)
 
 		return [y for x in results for y in x]
 
@@ -226,11 +290,7 @@ class distributed_container(object):
 		Sorting based on dict.
 		"""
 
-		sliced_scopes = self.__count_slices__()
-
-		tp = self.ThreadPool()
-
-		results = tp.map(lambda slc: self.__sort_worker__(self.container[slc]), sliced_scopes)
+		results = self.tp.map(lambda slc: self.__sort_worker__(self.container[slc]), self.sliced_scopes)
 
 		res_dct = self.defaultdict(lambda: 0)
 
@@ -243,6 +303,26 @@ class distributed_container(object):
 			res_arr += [key] * res_dct[key]
 
 		return res_arr
+
+
+	def min(self):
+		"""
+		Work the same like builtin min function.
+		"""
+
+		results = self.tp.map(lambda slc: min(self.container[slc]), self.sliced_scopes)
+
+		return min(results)
+
+
+	def max(self):
+		"""
+		Work the same like builtin max function.
+		"""
+
+		results = self.tp.map(lambda slc: max(self.container[slc]), self.sliced_scopes)
+
+		return max(results)
 
 
 if __name__ == '__main__':
@@ -266,15 +346,15 @@ if __name__ == '__main__':
 	from time import time
 
 	doctest.testmod(verbose=True, optionflags=doctest.ELLIPSIS)	
-
+	
 	print "\n   ::: Efficiency TESTS :::   \n"
 	
 	print "1) .count on list(or tuple)"
 	print 'Generating data...'
-	input_container = [randint(5, 15) for x in range(40000000)]
+	input_container = [randint(5, 15) for x in range(30000000)]
 	print 'A) distributed_container:',
 	start_time = time()
-	container = distributed_container(input_container, 24)
+	container = distributed_container(input_container, 16, 2)
 	container.count(10)
 	print time() - start_time, 'seconds'
 
@@ -282,13 +362,13 @@ if __name__ == '__main__':
 	start_time = time()
 	input_container.count(10)
 	print time() - start_time, 'seconds'
-
+	
 	print "\n2) .indexes in list(or tuple)"
 	print 'Generating data...'
 	input_container = [randint(5, 15) for x in range(100000)]
 	print 'A) distributed_container:',
 	start_time = time()
-	container = distributed_container(input_container, 64)
+	container = distributed_container(input_container, 64, 2)
 	container.indexes(10)
 	print time() - start_time, 'seconds'
 
@@ -307,15 +387,15 @@ if __name__ == '__main__':
 			input_container[indexes_res[-1]] = None
 
 	print time() - start_time, 'seconds'
-
+	
 	print '\n   ::Since version 0.2::   '
-
+	
 	print '\n3) .remove_all from list'
 	print 'Generating data...'
 	input_container = [randint(5, 15) for x in range(100000)]
 	print 'A) distributed_container:',
 	start_time = time()
-	container = distributed_container(input_container, 16)
+	container = distributed_container(input_container, 20, 2)
 	v_0 = container.remove_all([7, 11])
 	print time() - start_time, 'seconds'
 
@@ -340,12 +420,43 @@ if __name__ == '__main__':
 	input_container_2 = input_container[:]
 	print 'A) distributed_container:',
 	start_time = time()
-	container = distributed_container(input_container, 4)
+	container = distributed_container(input_container, 2, 2)
 	container = container.sort()
 	print time() - start_time, 'seconds'
 
 	print 'B) one thread way:',
 	start_time = time()
 	input_container_2.sort()
+	print time() - start_time, 'seconds'	
+	
+	print '\n   ::Since version 0.3::   '
+	print '\n5) .min'
+	print 'Generating data...'
+	input_container = [1,2,3,4,5,6,7,8]*6000000
+
+	print 'A) distributed_container:',
+	start_time = time()
+	container = distributed_container(input_container, 32, 64)
+	container = container.min()
 	print time() - start_time, 'seconds'
+
+	print 'B) one thread way:',
+	start_time = time()
+	min(input_container)
+	print time() - start_time, 'seconds'
+
+	print '\n6) .max'
+
+	print 'A) distributed_container:',
+	start_time = time()
+	container = distributed_container(input_container, 32, 64)
+	container = container.max()
+	print time() - start_time, 'seconds'
+
+	print 'B) one thread way:',
+	start_time = time()
+	max(input_container)
+	print time() - start_time, 'seconds'	
+
 	print ''
+	
