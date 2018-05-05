@@ -1,5 +1,5 @@
 __author__ = 'Surrerstry'
-__version__ = '0.3'
+__version__ = '0.4'
 __website__ = 'surrerstry.pl'
 
 
@@ -115,6 +115,13 @@ class distributed_container(object):
 	>>> dc = distributed_container(input_container, 4, 4)
 	>>> dc.max()
 	8
+
+	>>> # 'TESTS_OF:self.bytearray'
+	>>> input_container = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+	>>> dc = distributed_container(input_container, 4)
+	>>> tmp_res = dc.bytearray()
+	>>> str(tmp_res) == '\\x00\\x01\\x02\\x03\\x04\\x05\\x06\\x07\\x08\\t'
+	True
 	"""
 
 	def __init__(self, container, chunks=2, workers=None):
@@ -179,6 +186,21 @@ class distributed_container(object):
 			self.tp = self.ThreadPool(self.workers)
 
 
+	def __keyword_parser__(self, key=None):
+		"""
+		Internal generic method to parse keyword arguments.
+		"""
+
+		kwargs = {
+				 'key':key
+				 }
+
+		if key == None:
+			kwargs.pop('key')
+		
+		return kwargs
+
+	
 	def __count_slices__(self):
 		"""
 		Internal method to calculate slices
@@ -305,24 +327,36 @@ class distributed_container(object):
 		return res_arr
 
 
-	def min(self):
+	def min(self, key=None):
 		"""
-		Work the same like builtin min function.
+		Works the same like builtin min function.
 		"""
+		kwargs = self.__keyword_parser__(key=key)
 
-		results = self.tp.map(lambda slc: min(self.container[slc]), self.sliced_scopes)
+		results = self.tp.map(lambda slc: min(self.container[slc], **kwargs), self.sliced_scopes)
 
 		return min(results)
 
 
-	def max(self):
+	def max(self, key=None):
 		"""
-		Work the same like builtin max function.
+		Works the same like builtin max function.
 		"""
+		kwargs = self.__keyword_parser__(key=key)
 
-		results = self.tp.map(lambda slc: max(self.container[slc]), self.sliced_scopes)
+		results = self.tp.map(lambda slc: max(self.container[slc], **kwargs), self.sliced_scopes)
 
 		return max(results)
+
+
+	def bytearray(self):
+		"""
+		Works the same like builtin bytearray function.
+		"""
+
+		results = self.tp.map(lambda slc: bytearray(self.container[slc]), self.sliced_scopes)
+
+		return bytearray().join(results)
 
 
 if __name__ == '__main__':
@@ -427,7 +461,7 @@ if __name__ == '__main__':
 	print 'B) one thread way:',
 	start_time = time()
 	input_container_2.sort()
-	print time() - start_time, 'seconds'	
+	print time() - start_time, 'seconds'
 	
 	print '\n   ::Since version 0.3::   '
 	print '\n5) .min'
@@ -456,7 +490,23 @@ if __name__ == '__main__':
 	print 'B) one thread way:',
 	start_time = time()
 	max(input_container)
-	print time() - start_time, 'seconds'	
+	print time() - start_time, 'seconds'
+
+	print '\n   ::Since version 0.4::   '
+	print '\n7) .bytearray'
+
+	input_container = [randint(0, 255) for _ in range(20000000)]
+
+	print 'A) distributed_container:',
+	start_time = time()
+	container = distributed_container(input_container, 256, 6)
+	container = container.bytearray()
+	print time() - start_time, 'seconds'
+
+	print 'B) one thread way:',
+	start_time = time()
+	bytearray(input_container)
+	print time() - start_time, 'seconds'
 
 	print ''
 	
