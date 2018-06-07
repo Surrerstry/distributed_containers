@@ -1,5 +1,4 @@
-# time_sandbox
-Breaking code(function), after specific period of time.
-Works only on Python 2
+# distributed_containers
+Multithreading library on pypy-stm
 
-https://surrerstry.pl/breaking_code_after_specified_period_of_time
+https://surrerstry.pl/distributed_containers
