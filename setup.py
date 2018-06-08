@@ -3,7 +3,7 @@ from distutils.core import setup
 setup(
 	name = 'distributed_containers',
 	packages = ['distributed_containers'],
-	version = '0.42',
+	version = '0.43',
 	description = "Conceptual library written for pypy-stm that target is to get more from multithreading possibilities of pypy-stm.",
 	author = 'Damian Medrala',
 	author_email = 'surrerstry@gmail.com',
