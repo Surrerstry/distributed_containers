@@ -1,5 +1,5 @@
 __author__ = 'Surrerstry'
-__version__ = '0.41'
+__version__ = '0.43'
 __website__ = 'surrerstry.pl'
 
 
@@ -141,30 +141,30 @@ class distributed_container(object):
 		elif isinstance(container, tuple):
 			self.container_type = 'tuple'
 		else:
-			raise Exception("Incorrect type of container: ({}), expected: 'list' or 'tuple'.".format(type(container)))
+			raise TypeError("Incorrect type of container: ({}), expected: 'list' or 'tuple'.".format(type(container)))
 
 		self.container = container
 
 		
 		if not isinstance(chunks, int):
-			raise Exception("Wrong type of third parameter(workers): ({}), expected: int".format(type(chunks)))
+			raise TypeError("Wrong type of third parameter(workers): ({}), expected: int".format(type(chunks)))
 
 		if workers is not None and not isinstance(workers, int):
-			raise Exception("Wrong type of forth parameter(workers): ({}), expected: int".format(type(workers)))
+			raise TypeError("Wrong type of forth parameter(workers): ({}), expected: int".format(type(workers)))
 
 		
 		self.container_length = len(container)
 
 		if self.container_length < workers or self.container_length < chunks:
-			raise Exception('Amount of workers/chunks cannot be higher than elements in container')
+			raise ValueError('Amount of workers/chunks cannot be higher than elements in container')
 
 		if workers is not None and workers < 2:
-			raise Exception('Amount of workers cannot be lower than 2')
+			raise ValueError('Amount of workers cannot be lower than 2')
 
 		self.workers = workers
 
 		if chunks < 2:
-			raise Exception('Amount of chunks cannot be lower than 2')
+			raise ValueError('Amount of chunks cannot be lower than 2')
 
 		self.chunks = chunks
 
@@ -284,10 +284,10 @@ class distributed_container(object):
 		"""
 
 		if self.container_type != 'list':
-			raise Exception('Method: ({}) works only on lists'.format(self._getframe().f_code.co_name))
+			raise TypeError('Method: ({}) works only on lists'.format(self._getframe().f_code.co_name))
 
 		if not isinstance(elements_to_remove, (list, tuple)):
-			raise Exception("Method: ({}), wrong type of parameter: ({}), expected: 'list' or 'tuple'".format(self._getframe().f_code.co_name, type(elements_to_remove)))
+			raise TypeError("Method: ({}), wrong type of parameter: ({}), expected: 'list' or 'tuple'".format(self._getframe().f_code.co_name, type(elements_to_remove)))
 
 		results = self.tp.map(lambda slc: self.__remove_all_worker__(self.container[slc], elements_to_remove), self.sliced_scopes)
 
@@ -381,6 +381,10 @@ if __name__ == '__main__':
 
 	doctest.testmod(verbose=True, optionflags=doctest.ELLIPSIS)	
 	
+	inp = raw_input('Do additional efficiency tests? [y/N]:')
+	if inp != 'y':
+		exit(0)
+
 	print "\n   ::: Efficiency TESTS :::   \n"
 	
 	print "1) .count on list(or tuple)"
